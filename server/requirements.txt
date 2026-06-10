@@ -4,4 +4,7 @@ chromadb
 langchain
 langchain_community
 langchain_text_splitters
+sqlalchemy[asyncio]
+aiosqlite
+python-dotenv
 bs4
