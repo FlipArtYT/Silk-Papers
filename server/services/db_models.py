@@ -6,18 +6,18 @@ class Base(DeclarativeBase):
 class Notebooks(Base):
     __tablename__ = "notebooks"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, unique=True)
+    id: Mapped[str] = mapped_column(primary_key=True, unique=True)
     name: Mapped[str] = mapped_column(index=True)
     description: Mapped[str] = mapped_column(index=True)
 
 class Documents(Base):
     __tablename__ = "documents"
 
-    id: Mapped[int] = mapped_column(index=True, primary_key=True, autoincrement=True, unique=True)
+    id: Mapped[str] = mapped_column(primary_key=True, unique=True)
     notebooks_id: Mapped[int] = mapped_column(index=True)
     filename: Mapped[str] = mapped_column(index=True)
     file_type: Mapped[str] = mapped_column(index=True)
-    status: Mapped[bool]
+    status: Mapped[str] = mapped_column(index=True)
     chroma_collection_id: Mapped[str] = mapped_column(index=True)
 
 class ChatMessage(Base):
