@@ -1,9 +1,9 @@
 fastapi[standard]
 ollama
-chromadb
 langchain
 langchain_community
 langchain_text_splitters
+langchain_chroma
 sqlalchemy[asyncio]
 aiosqlite
 python-dotenv

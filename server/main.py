@@ -19,7 +19,9 @@ from contextlib import asynccontextmanager
 from services.db_models import Notebooks, Documents, ChatMessage, Base
 from services.database import db_engine, get_db, db_session
 import services.better_text_splitter as better_text_splitter
+from services.chroma_database import insert_pages
 from pydantic_schemas.notebook_mgr import UploadDocumentMetadata
+from pydantic_schemas.chat_mgr import GenerateLLMResponseRequest
 from dataclasses import dataclass
 
 ALLOWED_DOCUMENT_MIMETYPES = {"text/plain", "application/pdf"}
@@ -42,10 +44,10 @@ app = FastAPI(lifespan=lifespan)
 @app.get("/api/status")
 def server_status():
     return {
-        "message": "Success"
+        "message": "Active"
     }
 
-@app.post("/api/notebooks/new")
+@app.post("/api/notebooks/new", status_code=201)
 async def new_notebook(db: AsyncSession = Depends(get_db)):
     async with db_session() as session:
         time_now = datetime.datetime.now()
@@ -86,8 +88,14 @@ async def get_notebook_list(db: AsyncSession = Depends(get_db)):
             })
         
         return {"notebooks": response_format}
+
+@app.get("/api/llm/generate")
+async def generate_llm_response(request_data: GenerateLLMResponseRequest):
+    notebook_id = request_data.notebook_id
+    prompt = request_data.prompt.strip()
+    model = request_data.model
     
-@app.post("/api/notebooks/upload")
+@app.post("/api/notebooks/upload", status_code=201)
 async def add_file_to_notebook(file: UploadFile = File(...), metadata: str = Form(...), db: AsyncSession = Depends(get_db)):
     if not file.content_type in ALLOWED_DOCUMENT_MIMETYPES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File type is not supported for documents")
@@ -96,7 +104,9 @@ async def add_file_to_notebook(file: UploadFile = File(...), metadata: str = For
         # Manually parse the JSON string into our Pydantic model
         metadata_dict = json.loads(metadata)
         item_data = UploadDocumentMetadata(**metadata_dict)
+
         requested_notebook = item_data.notebook_id
+
     except (json.JSONDecodeError, TypeError, ValueError) as e:
         raise HTTPException(
             status_code=400, 
@@ -157,34 +167,40 @@ async def add_file_to_notebook(file: UploadFile = File(...), metadata: str = For
 
         # Split document
         splitted_text = await better_text_splitter.split_text(temp_path, file.content_type)
+        
+        try:
+            await insert_pages(collection_id=requested_notebook, chunks=splitted_text)
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error when trying to insert documents into the Chroma collection: {str(e)}"
+            )
 
         # Move from temp to documents
         documents_path = DOCUMENTS_DIR / file_name
         await aioshutil.move(temp_path, documents_path)
 
         return {
-            "message": "Successfully created new notebook",
+            "message": "Successfully uploaded document",
             "document_id": document_id,
         }
     
-    except Exception as e:
+    except Exception as MainException:
         # Update notebook status
-        print("Fail")
+        print(f"Notebook upload failed: {MainException}")
         try:
             async with db_session() as session:
                 query = sqla.update(Documents).where(Documents.id == document_id).values(status="failed")
                 await session.execute(query)
                 await session.commit()
         
-        except:
-            return HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Very fatal error when trying to update status of notebook metadata values: {str(e)}"
-            )
+        except Exception as e:
+            print(f"An error occured when trying to update the notebook status: {e}")
         
-        raise HTTPException(
+        return HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Fatal error when trying to upload document: {str(e)}"
+            detail=f"An error occured when trying to upload the document: {str(MainException)}"
         )
     
     finally:
