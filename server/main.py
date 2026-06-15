@@ -7,6 +7,7 @@ import os
 import json
 import aioshutil
 import secrets
+import ollama
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -19,7 +20,8 @@ from contextlib import asynccontextmanager
 from services.db_models import Notebooks, Documents, ChatMessage, Base
 from services.database import db_engine, get_db, db_session
 import services.better_text_splitter as better_text_splitter
-from services.chroma_database import insert_pages
+from services.chroma_database import insert_pages, query_request
+from services.llm import generate_response
 from pydantic_schemas.notebook_mgr import UploadDocumentMetadata
 from pydantic_schemas.chat_mgr import GenerateLLMResponseRequest
 from dataclasses import dataclass
@@ -89,11 +91,98 @@ async def get_notebook_list(db: AsyncSession = Depends(get_db)):
         
         return {"notebooks": response_format}
 
-@app.get("/api/llm/generate")
+@app.delete("/api/notebooks/delete")
+async def delete_notebook(db: AsyncSession = Depends(get_db)):
+    pass
+
+@app.post("/api/llm/generate")
 async def generate_llm_response(request_data: GenerateLLMResponseRequest):
-    notebook_id = request_data.notebook_id
+    requested_notebook = request_data.notebook_id
     prompt = request_data.prompt.strip()
     model = request_data.model
+
+    # Check if prompt isn't blank
+    if prompt == "":
+        raise HTTPException(
+            status_code=400, 
+            detail=f"No prompt was provided"
+        )
+    
+    # Check if model exists
+    local_models = ollama.list()
+    model_exists = any(m['model'] == model for m in local_models.get('models', []))
+
+    if not model_exists:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"AI Model does not exist"
+        )
+    
+    # Check if notebook exists
+    try:
+        async with db_session() as session:
+            query = sqla.select(Notebooks)
+            results = await session.execute(query)
+            notebooks: list[Notebooks] = results.scalars().all()
+
+            notebook_ids: list[str] = [notebook.id for notebook in notebooks]
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error when trying to search for the requested notebook: {str(e)}"
+        )
+    
+    if not requested_notebook in notebook_ids:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Notebook was not found"
+        )
+    
+    # Get querying results from ChromaDB
+    try:
+        rag_results = await query_request(collection_id=requested_notebook, query=prompt, max_results=4)
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error when trying to get RAG results: {str(e)}"
+        )
+    
+    context_list = []
+
+    for result in rag_results:
+        formatted_result = ""
+        page_content = result.page_content.strip()
+        meatadata = result.metadata
+
+        if meatadata:
+            title = meatadata.get("title", "No title")
+            source = meatadata.get("source", "No source")
+            page_num = meatadata.get("page", "No page number")
+
+            formatted_result = f"[Document]\nTitle: {title}\nSource: {source}\nPage number: {page_num}\nPage Content: {page_content}"""
+
+        else:
+            formatted_result = f"[Document]\nPage Content: {page_content}\nMetadata: Not provided"
+        
+        context_list.append(formatted_result)
+    
+    formatted_context = "\n\n".join(context_list)
+
+    try:
+        response = await generate_response(prompt=prompt, model=model, context=formatted_context)
+        
+        return {
+            "response": response
+        }
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error when trying to generate a LLM response: {str(e)}"
+        )
+
     
 @app.post("/api/notebooks/upload", status_code=201)
 async def add_file_to_notebook(file: UploadFile = File(...), metadata: str = Form(...), db: AsyncSession = Depends(get_db)):
