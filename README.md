@@ -1,11 +1,11 @@
-# Silk-Papers
+# 📝 Silk-Papers
 A local and private NotebookLM alternative. Currently very experimental.
 
-## Features
+## ⭐ Features
 - Easily ask an AI assistant any question about a stack of documents
-- Manage notebooks easily using the WebUI (not implemented)
+- Manage notebooks easily using the WebUI (not implemented yet)
 
-## Requirements
+## ⚙️ Requirements
 - `fastapi[standard]`
 - `ollama`
 - `langchain`
@@ -16,18 +16,18 @@ A local and private NotebookLM alternative. Currently very experimental.
 - `sqlalchemy[asyncio]`
 - `aiosqlite`
 - `python-dotenv`
-- `aioshutil
+- `aioshutil`
 - `aiofiles`
 - `bs4`
 - `pypdf`
 
-## How to run
-To use this program, simply run it using this command:
+## 🚀 How to run
+To use this web server, simply run it using this command:
 ```
 fastapi run main.py
 ```
 
-## API Endpoints
+## 🗺️ API Endpoints
 - `/api/status/`: Returns a message string
 - `/api/notebooks/get_documents_list`: Returns a list of documents in a notebook
 - `/api/notebooks/get_list`: Returns a list of notebooks
@@ -39,15 +39,19 @@ fastapi run main.py
 - `/api/notebooks/delete`: Deletes a notebook including their documents
 - `/api/llm/generate`: Generates a response using Ollama and document chunks from RAG
 
-## To-do
-- [x] Database Setup (SQLite3)
+## 📃 To-do
+- [x] Database Setup (`sqlite3`)
 - [x] Document upload
-- [x] Setup LLM (Ollama)
-- [x] Setup chat and RAG (chromadb and langchain)
+- [x] Setup LLM (`ollama`)
+- [x] Setup chat and RAG (`chromadb` and `langchain`)
 - [x] Multiple Notebook support
 - [x] Finish base API endpoints
 - [ ] Split main script into routers
+- [ ] Multiple chats within a notebook
 - [ ] WebUI
-- [ ] Website upload
 - [ ] Ollama Cloud integration
+- [ ] Website upload and direct upload from other external sources
 - [ ] Podcast feature inspired by NotebookLM
+
+## 🔜 Transfer to the Silk Project Organisation
+This project will likely be transferred to the Silk Project organisation after finishing the WebUI.
