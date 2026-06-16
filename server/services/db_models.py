@@ -15,8 +15,9 @@ class Documents(Base):
 
     id: Mapped[str] = mapped_column(primary_key=True, unique=True)
     notebooks_id: Mapped[int] = mapped_column(index=True)
+    display_name: Mapped[str] = mapped_column(index=True)
     filename: Mapped[str] = mapped_column(index=True)
-    file_type: Mapped[str] = mapped_column(index=True)
+    content_type: Mapped[str] = mapped_column(index=True)
     status: Mapped[str] = mapped_column(index=True)
     chroma_collection_id: Mapped[str] = mapped_column(index=True)
 

@@ -2,14 +2,15 @@ import asyncio
 import aiofiles
 import pathlib
 import os
+import re
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 
 async def split_text(path, content_type) -> list:
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=300,
-        chunk_overlap=100,
+        chunk_size=500,
+        chunk_overlap=50,
         length_function=len,
         is_separator_regex=False,
     )
@@ -24,12 +25,14 @@ async def split_text(path, content_type) -> list:
 
         return split_docs
     
-    elif content_type in "text/plain":
-        async with aiofiles.open(path, mode='r', encoding='utf-8') as f:
-            content = f.read(path)
+    # elif content_type in "text/plain":
+    #     async with aiofiles.open(path, mode='r', encoding='utf-8') as f:
+    #         content = f.read(path)
 
-        document = [Document(page_content=content, metadata={"source": path})]
+    #     filename = re.search("(.+)\..^")
+    #     print(filename)
+    #     document = [Document(page_content=content, metadata={"source": path, "display_name": ""})]
         
-        split_docs = await text_splitter.atransform_documents(document)
+    #     split_docs = await text_splitter.atransform_documents(document)
 
-        return split_docs
+    #     return split_docs

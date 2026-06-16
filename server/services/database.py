@@ -3,8 +3,10 @@ import sqlalchemy as sqla
 import sqlalchemy.ext.asyncio as sqla_async
 import sqlalchemy.orm as sqla_orm
 from services.db_models import Notebooks, Documents, ChatMessage, Base
+import os
 
 DB_PATH = "sqlite+aiosqlite:///databases/database.db"
+os.makedirs("./databases", exist_ok=True)
 db_engine: sqla_async.AsyncEngine = sqla_async.create_async_engine(
     DB_PATH,
     echo=True,
