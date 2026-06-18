@@ -2,12 +2,12 @@
 A local and private NotebookLM alternative. Currently very experimental.
 
 ## ⭐ Features
-- Easily ask an AI assistant any question about a stack of documents
+- Easily chat with an AI assistant about a stack of documents
 - Manage notebooks easily using the WebUI (not implemented yet)
 
 ## ⚙️ Requirements
 - `fastapi[standard]`
-- `ollama`
+- `ollama` (pip and system-wide)
 - `langchain`
 - `langchain_community`
 - `langchain_text_splitters`
