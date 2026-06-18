@@ -4,6 +4,7 @@ from starlette.concurrency import run_in_threadpool
 from typing import Annotated
 from pathlib import Path
 import os
+import re
 import json
 import aioshutil
 import secrets
@@ -21,16 +22,17 @@ from services.db_models import Notebooks, Documents, ChatMessage, Base
 from services.database import db_engine, get_db, db_session
 import services.better_text_splitter as better_text_splitter
 from services.chroma_database import insert_pages, query_request
-from services.llm import generate_response
+from services.llm import generate_response, generate_chat_response
 from pydantic_schemas.notebook_mgr import (
     UploadDocumentMetadata,
     DeleteNotebookRequest, 
     NotebookRenameRequest,
     NotebookDocumentsRequest,
     DeleteDocumentRequest,
-    RenameDocumentRequest
+    RenameDocumentRequest,
+    LLMChatClearRequest
 )
-from pydantic_schemas.chat_mgr import GenerateLLMResponseRequest
+from pydantic_schemas.chat_mgr import GenerateLLMResponseRequest, LLMChatRequest
 from dataclasses import dataclass
 
 ALLOWED_DOCUMENT_MIMETYPES = {"application/pdf"}
@@ -328,6 +330,39 @@ async def upload_file_to_notebook(file: UploadFile = File(...), metadata: str = 
     finally:
         await clean_up_failed_documents()
 
+@app.delete("/api/notebooks/clear_chat", status_code=204)
+async def delete_notebook(request_data: LLMChatClearRequest, db: AsyncSession = Depends(get_db)):
+    requested_notebook = request_data.notebook_id
+
+    # Check if notebook exists
+    try:
+        requested_notebook_exists = await notebook_id_exists(requested_notebook)
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error when trying to search for the requested notebook: {str(e)}"
+        )
+    
+    if not requested_notebook_exists:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Notebook was not found"
+        )
+    
+    # Delete document's metadata
+    try:
+        async with db_session() as session:
+            query = sqla.delete(ChatMessage).where(ChatMessage.notebooks_id == requested_notebook)
+            await session.execute(query)
+            await session.commit()
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error when trying to clear the chat: {str(e)}"
+        )
+
 @app.delete("/api/notebooks/delete_document", status_code=204)
 async def delete_notebook(request_data: DeleteDocumentRequest, db: AsyncSession = Depends(get_db)):
     requested_document = request_data.document_id
@@ -388,7 +423,6 @@ async def delete_notebook(request_data: DeleteDocumentRequest, db: AsyncSession 
         "message": "Successfully deleted document",
         "notebook_id": requested_document,
     }
-
 
 @app.delete("/api/notebooks/delete", status_code=204)
 async def delete_notebook(request_data: DeleteNotebookRequest, db: AsyncSession = Depends(get_db)):
@@ -466,6 +500,143 @@ async def delete_notebook(request_data: DeleteNotebookRequest, db: AsyncSession 
     return {
         "message": "Successfully deleted notebook",
         "notebook_id": requested_notebook,
+    }
+
+@app.get("/api/llm/list")
+async def get_available_models():
+    models: list = ollama.list()
+    formatted_models = []
+
+    for model in models["models"]:
+        model_name = model.get("model")
+        details = model.get("details")
+        parameter_size = details.get("parameter_size")
+        int_parameter_size = parse_parameter_size(parameter_size)
+
+        formatted_models.append({
+            "model": model_name,
+            "parameter_size": int_parameter_size
+        })
+
+    return formatted_models
+
+@app.post("/api/llm/chat")
+async def chat_with_llm(request_data: LLMChatRequest):
+    requested_notebook = request_data.notebook_id
+    prompt = request_data.prompt.strip()
+    model = request_data.model
+    chat_messages_list = []
+
+    # Check if prompt isn't blank
+    if prompt == "":
+        raise HTTPException(
+            status_code=400, 
+            detail=f"No prompt was provided"
+        )
+    
+    # Check if model exists
+    local_models = ollama.list()
+    model_exists = any(m['model'] == model for m in local_models.get('models', []))
+
+    if not model_exists:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"AI Model does not exist"
+        )
+    
+    # Check if notebook exists
+    try:
+        requested_notebook_exists = await notebook_id_exists(requested_notebook)
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error when trying to search for the requested notebook: {str(e)}"
+        )
+    
+    if not requested_notebook_exists:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Notebook was not found"
+        )
+    
+    # Get messages from chat
+    try:
+        async with db_session() as session:
+            query = sqla.select(ChatMessage).where(ChatMessage.notebooks_id == requested_notebook)
+            results = await session.execute(query)
+            messages: list[ChatMessage] = results.scalars().all()
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error when trying to search for the messages from the requested notebook: {str(e)}"
+        )
+    
+    for message in messages:
+        chat_messages_list.append({"role": message.role, "content": message.content})
+    
+    # Get querying results from ChromaDB
+    try:
+        rag_results = await query_request(collection_id=requested_notebook, query=prompt, max_results=6)
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error when trying to get RAG results: {str(e)}"
+        )
+    
+    context_list = []
+
+    for result in rag_results:
+        formatted_result = ""
+        page_content = result.page_content.strip()
+        meatadata = result.metadata
+
+        if meatadata:
+            title = meatadata.get("title", "No title")
+            source = meatadata.get("source", "No source")
+            page_num = meatadata.get("page", "No page number")
+
+            formatted_result = f"[Document]\nTitle: {title}\nSource: {source}\nPage number: {page_num}\nPage Content: {page_content}"""
+
+        else:
+            formatted_result = f"[Document]\nPage Content: {page_content}\nMetadata: Not provided"
+        
+        context_list.append(formatted_result)
+    
+    formatted_context = "\n\n".join(context_list)
+
+    try:
+        response = await generate_chat_response(prompt=prompt, model=model, context=formatted_context, messages=chat_messages_list)
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error when trying to generate a LLM response: {str(e)}"
+        )
+    
+    # Create updated messages list
+    new_chat_messages = [
+        {"notebooks_id": requested_notebook, "role": "user", "content": prompt, "model_used": ""},
+        {"notebooks_id": requested_notebook, "role": "assistant", "content": response, "model_used": model}
+    ]
+    
+    # Insert messages into the database
+    try:
+        async with db_session() as session:
+            query = sqla.insert(ChatMessage).values(new_chat_messages)
+            await session.execute(query)
+            await session.commit()
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error when trying to insert chat messages: {str(e)}"
+        )
+    
+    return {
+        "response": response
     }
 
 @app.post("/api/llm/generate")
@@ -604,3 +775,25 @@ async def clean_up_failed_documents() -> None:
 
                 except Exception as e:
                     print(f"Error when trying to delete {document.filename}; ID: {document.id}: {e}")
+
+def parse_parameter_size(size_str: str) -> int:
+    if not size_str:
+        return 0
+    
+    clean_str = size_str.strip().upper()
+    
+    match = re.match(r"^([0-9.]+)\s*([M_B_T]?)$", clean_str)
+    if not match:
+        return 0
+    
+    value_str, suffix = match.groups()
+    value = float(value_str)
+    
+    multipliers = {
+        'M': 1_000_000,          # Million
+        'B': 1_000_000_000,      # Billion
+        'T': 1_000_000_000_000,  # Trillion
+        '': 1                    # No suffix
+    }
+    
+    return int(value * multipliers.get(suffix, 1))

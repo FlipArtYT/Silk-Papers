@@ -90,7 +90,7 @@ Each message you receive will follow this structure:
 Always prioritize answering [USER MESSAGE]. The [CONTEXT] is there to inform your answer, not to be recited verbatim.
 """
 
-async def generate_response(prompt: str, model:str, context:str):
+async def generate_response(prompt: str, model:str, context:str) -> str:
     full_prompt = f"[CONTEXT]\n{context}\n\n[USER MESSAGE]\n{prompt}"
 
     response = await AsyncClient().generate(
@@ -100,3 +100,16 @@ async def generate_response(prompt: str, model:str, context:str):
     )
 
     return response['response']
+
+async def generate_chat_response(prompt: str, model:str, context:str, messages:list[dict]) -> str:
+    full_prompt: str = f"[CONTEXT]\n{context}\n\n[USER MESSAGE]\n{prompt}"
+    full_messages = messages
+    full_messages.append({"role": "system", "content": SYSTEM_PROMPT})
+    full_messages.append({"role": "user", "content": full_prompt})
+
+    response = await AsyncClient().chat(
+        model=model,
+        messages=full_messages
+    )
+
+    return response['message']['content']

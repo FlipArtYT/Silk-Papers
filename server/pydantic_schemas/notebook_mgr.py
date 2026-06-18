@@ -22,3 +22,6 @@ class NotebookRenameRequest(BaseModel):
 
 class NotebookDocumentsRequest(BaseModel):
     notebook_id: str
+
+class LLMChatClearRequest(BaseModel):
+    notebook_id: str
