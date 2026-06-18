@@ -1,4 +1,6 @@
 # 📝 Silk-Papers
+![Papers logo](/assets/papers.png)
+<br>
 A local and private NotebookLM alternative. Currently very experimental.
 
 ## ⭐ Features
@@ -29,14 +31,17 @@ fastapi run main.py
 
 ## 🗺️ API Endpoints
 - `/api/status/`: Returns a message string
-- `/api/notebooks/get_documents_list`: Returns a list of documents in a notebook
 - `/api/notebooks/get_list`: Returns a list of notebooks
+- `/api/notebooks/get_documents_list`: Returns a list of documents in a notebook
 - `/api/notebooks/new`: Creates a new notebook
 - `/api/notebooks/rename`: Renames an existing notebook
 - `/api/notebooks/rename_document`: Renames an existing document
 - `/api/notebooks/upload`: Uploads a PDF file and saves it to the server
+- `/api/notebooks/clear_chat`: Clears chat within a notebook
 - `/api/notebooks/delete_document`: Deletes a document
 - `/api/notebooks/delete`: Deletes a notebook including their documents
+- `/api/llm/list`: Lists locally available LLMs
+- `/api/llm/chat`: Generates a response using Ollama and document chunks from RAG with previous chat messages in a notebook
 - `/api/llm/generate`: Generates a response using Ollama and document chunks from RAG
 
 ## 📃 To-do
