@@ -51,9 +51,9 @@ fastapi run main.py
 - [x] Setup chat and RAG (`chromadb` and `langchain`)
 - [x] Multiple Notebook support
 - [x] Finish base API endpoints
-- [ ] Split main script into routers
-- [ ] Multiple chats within a notebook
+- [x] Split main script into routers
 - [ ] WebUI
+- [ ] Multiple chats within a notebook
 - [ ] Ollama Cloud integration
 - [ ] Website upload and direct upload from other external sources
 - [ ] Podcast feature inspired by NotebookLM
