@@ -14,6 +14,7 @@ from services.db_models import Notebooks, Documents, ChatMessage
 from services.database import get_db, db_session
 import services.better_text_splitter as better_text_splitter
 from services.chroma_database import insert_pages
+from services.notebook_mgr import get_notebook_doclen
 from pydantic_schemas.notebook_mgr import (
     UploadDocumentMetadata,
     DeleteNotebookRequest, 
@@ -42,10 +43,17 @@ async def get_notebook_list(db: AsyncSession = Depends(get_db)):
         response_format = []
 
         for notebook in notebooks:
+            try:
+                doclen = await get_notebook_doclen(notebook_id=notebook.id)
+            except Exception as e:
+                print(f"Failed to get doclen of Notebook: {e}")
+                doclen = 0
+
             response_format.append({
                 "id": notebook.id,
                 "name": notebook.name,
-                "description": notebook.description
+                "description": notebook.description,
+                "doclen": doclen
             })
         
         return {"result": response_format}
@@ -200,7 +208,7 @@ async def upload_file_to_notebook(file: UploadFile = File(...), metadata: str = 
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File type is not supported for documents")
     
     try:
-        # Manually parse the JSON string into our Pydantic model
+        # Manually parse the JSON string into Pydantic model
         metadata_dict = json.loads(metadata)
         item_data = UploadDocumentMetadata(**metadata_dict)
 

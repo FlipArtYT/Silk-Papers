@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+    <link rel="stylesheet" href="../static/styles.css">
+    <link rel="icon" type="image/png" href="{{ url_for('static', path='icons/favicon.svg') }}" sizes="64x64">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <title>Silk Papers</title>
+</head>
+<body>
+    <div id="main_toolbar">
+        <div id="left_toolbar">
+            <div id="logoarea" class="hide-in-mobile-search">
+                <img src="{{ url_for('static', path='icons/favicon.png') }}">
+                <a href="{{ url_for('home') }}">Silk <span class="primary_marker">Papers</span></a>
+            </div>
+        </div>
+        <div id="right_toolbar" class="hide-in-mobile-search">
+            <!--<button id="sidebar-btn" onclick="toggleSidebar()">
+                <i class="fa-solid fa-bars"></i>
+            </button>-->
+        </div>
+    </div>
+    <main>
+        <div id="about_box">
+            <div id="about_logo">
+                <img src="{{ url_for('static', path='icons/favicon.png') }}">
+                <h1>Silk <span class="primary_marker">Papers</span></h1>
+            </div>
+            <br>
+            <p>A local NotebookLM Alternative</p>
+            <br>
+            <p>Version: {{ version }}</p>
+        </div>
+    </main>
+</body>
+</html>

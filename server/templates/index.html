@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', path='main.css') }}">
+    <link rel="stylesheet" href="../static/styles.css">
+    <link rel="icon" type="image/png" href="{{ url_for('static', path='icons/favicon.svg') }}" sizes="64x64">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <title>Silk Papers</title>
+</head>
+<body>
+    <div id="main_toolbar">
+        <div id="left_toolbar">
+            <div id="logoarea" class="hide-in-mobile-search">
+                <img src="{{ url_for('static', path='icons/favicon.png') }}">
+                <a href="{{ url_for('home') }}">Silk <span class="primary_marker">Papers</span></a>
+            </div>
+        </div>
+        <div id="right_toolbar" class="hide-in-mobile-search">
+            <!--<button id="sidebar-btn" onclick="toggleSidebar()">
+                <i class="fa-solid fa-bars"></i>
+            </button>-->
+        </div>
+    </div>
+    <main>
+        <div id="title_row">
+            <h1>My Notebooks</h1>
+            <div id="control_row">
+                <button class="control_btn"><i class="fa-solid fa-plus"></i>New Notebook</button>
+            </div>
+        </div>
+        <div id="notebooks_view">
+            {% for notebook in notebooks %}
+                <a class="notebook_container" id="{{ notebook.id }}" href="{{ url_for('notebook_view', requested_notebook=notebook.id) }}">
+                    <div class="notebook_info">
+                        <h2 class="notebook_info_text">{{ notebook.name }}</h2>
+                        <p class="notebook_info_text">{{ notebook.description }}</p>
+                        <p class="notebook_info_text notebook_docs_len">Sources: {{ notebook.doclen }}</p>
+                    </div>
+                    <div class="notebook_controls">
+                        <button class="notebook_menu">
+                            <span>⋮</span>
+                        </button>
+                        <div class="control_options">
+                            <button class="control_option" data-action="rename">Rename Notebook</button>
+                            <button class="control_option" data-action="delete">Delete Notebook</button>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    </main>
+    <div id="rename-modal" class="modal-overlay">
+        <div class="modal-dialog">
+            <h2>Rename Notebook</h2>
+            <div class="modal-body">
+                <label for="rename-name">Name</label>
+                <input type="text" id="rename-name" class="modal-input" />
+                <label for="rename-description">Description</label>
+                <textarea id="rename-description" class="modal-input" rows="5"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" id="rename-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-save" id="rename-save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="delete-modal" class="modal-overlay">
+        <div class="modal-dialog">
+            <h2>Delete Notebook</h2>
+            <p class="modal-message">Are you sure you want to delete this notebook and all its documents?</p>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" id="delete-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-danger" id="delete-confirm">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-overlay" class="loading-overlay">
+        <i class="fa fa-cog fa-spin"></i>
+    </div>
+
+    <div id="error-toast" class="error-toast"></div>
+
+    <script src="{{ url_for('static', path='script.js') }}"></script>
+</body>
+</html>

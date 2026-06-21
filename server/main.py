@@ -7,7 +7,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from contextlib import asynccontextmanager
 from services.db_models import Base
 from services.database import db_engine
+from services.notebook_mgr import notebook_id_exists, get_notebooks, get_notebook_doclen
 from routers import notebooks, llm
+
+APP_VERSION = "0.0.0 ALPHA"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -32,11 +35,52 @@ def server_status():
     }
 
 @app.get("/", include_in_schema=False)
-def home(request: Request):
+async def home(request: Request):
+    notebooks = await get_notebooks()
+
+    response_format = []
+
+    for notebook in notebooks:
+        try:
+            doclen = await get_notebook_doclen(notebook_id=notebook.id)
+        except Exception as e:
+            print(f"Failed to get doclen of Notebook: {e}")
+            doclen = 0
+
+        response_format.append({
+            "id": notebook.id,
+            "name": notebook.name,
+            "description": notebook.description,
+            "doclen": doclen
+        })
+
     return templates.TemplateResponse(
         request,
-        "index.html"
+        "index.html",
+        context={"notebooks": response_format}
     )
+
+@app.get("/about", include_in_schema=False)
+async def home(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "about.html",
+        context={"version": APP_VERSION}
+    )
+
+@app.get("/notebooks/{requested_notebook}", name="notebook_view", include_in_schema=False)
+async def notebook_view(request: Request, requested_notebook: str):
+    notebook_exists = await notebook_id_exists(requested_notebook)
+
+    if notebook_exists:
+        return templates.TemplateResponse(
+            request,
+            "notebook_view.html",
+            context={"notebook_id": requested_notebook}
+        )
+    
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notebook was not found")
 
 @app.exception_handler(StarletteHTTPException)
 def general_http_exception_handler(request: Request, exception: StarletteHTTPException):

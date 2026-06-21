@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="120mm"
+   height="120mm"
+   viewBox="-60 -60 120 120"
+   version="1.1"
+   id="svg301"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <defs
+     id="defs303">
+    <linearGradient
+       xlink:href="#linearGradient4831"
+       id="linearGradient4833"
+       x1="38.692471"
+       y1="33.307755"
+       x2="38.692471"
+       y2="71.437782"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.0598431,0,0,1.0598431,-5.4097833,16.293926)" />
+    <linearGradient
+       id="linearGradient4831">
+      <stop
+         style="stop-color:#ad3ee0;stop-opacity:1;"
+         offset="0"
+         id="stop4827" />
+      <stop
+         style="stop-color:#aa36d9;stop-opacity:1;"
+         offset="1"
+         id="stop4829" />
+    </linearGradient>
+  </defs>
+  <metadata
+     id="metadata2822">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="g255"
+     transform="matrix(1.9747134,0,0,1.9747134,-105.79006,-141.91949)">
+    <path
+       style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:4.0254;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:1;stroke-opacity:1"
+       d="M 32.790378,97.534101 H 72.34165 V 52.760742 H 50.779833"
+       id="path1378" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:url(#linearGradient4833);stroke-width:4.0254;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:1;stroke-opacity:1"
+       d="m 34.803076,91.796304 c 2.81e-4,-13.470324 2.81e-4,-26.73048 0,-40.201365"
+       id="path3705" />
+    <ellipse
+       style="fill:none;fill-opacity:1;stroke:#b153dd;stroke-width:4.0254;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:1;stroke-opacity:1"
+       id="path3759"
+       cx="40.262428"
+       cy="51.674248"
+       rx="5.4593487"
+       ry="5.4715495" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:3.76227;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:1;stroke-opacity:1"
+       d="M 53.082706,61.781738 H 65.701018"
+       id="path4585" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:3.76227;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:1;stroke-opacity:1"
+       d="M 44.483607,69.950301 H 65.701018"
+       id="path4585-6" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:3.76227;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:1;stroke-opacity:1"
+       d="M 42.290579,78.118865 H 65.701018"
+       id="path4585-6-7" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:3.76227;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:1;stroke-opacity:1"
+       d="M 40.181433,86.287428 H 65.701018"
+       id="path4585-6-7-5" />
+  </g>
+</svg>
