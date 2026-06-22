@@ -5,7 +5,7 @@ A local and private NotebookLM alternative. Currently very experimental.
 
 ## ⭐ Features
 - Easily chat with an AI assistant about a stack of documents
-- Manage notebooks easily using the WebUI (not implemented yet)
+- Manage notebooks easily using the WebUI (not ready yet)
 
 ## ⚙️ Requirements
 - `fastapi[standard]`
@@ -31,6 +31,7 @@ fastapi run main.py
 
 ## 🗺️ API Endpoints
 - `/api/status/`: Returns a message string
+### Notebooks Router
 - `/api/notebooks/get_list`: Returns a list of notebooks
 - `/api/notebooks/get_documents_list`: Returns a list of documents in a notebook
 - `/api/notebooks/new`: Creates a new notebook
@@ -40,6 +41,7 @@ fastapi run main.py
 - `/api/notebooks/clear_chat`: Clears chat within a notebook
 - `/api/notebooks/delete_document`: Deletes a document
 - `/api/notebooks/delete`: Deletes a notebook including their documents
+### LLM / Chat Router
 - `/api/llm/list`: Lists locally available LLMs
 - `/api/llm/chat`: Generates a response using Ollama and document chunks from RAG with previous chat messages in a notebook
 - `/api/llm/generate`: Generates a response using Ollama and document chunks from RAG
