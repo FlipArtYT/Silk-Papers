@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+    <link rel="stylesheet" href="../static/styles.css">
+    <link rel="icon" type="image/png" href="{{ url_for('static', path='icons/favicon.svg') }}" sizes="64x64">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <title>Silk Papers - {{ notebook_metadata.name }}</title>
+    <style>
+        #document_view {
+            flex-grow: 1;
+            min-width: 250px;
+            max-width: 350px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #document_controls {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            padding: 1rem;
+            border-bottom: solid 1px var(--border);
+        }
+
+        #document_controls button {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background-color: var(--primary);
+            padding: 8px 14px;
+            color: white;
+            border-radius: 8px;
+            border: solid 2px #c080dd;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            flex: 1;
+            justify-content: center;
+        }
+
+        #document_controls button:hover {
+            background-color: #c060e8;
+        }
+
+        #document_list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem 0;
+        }
+
+        .document_item {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            padding: 0.5rem 0.8rem;
+            cursor: pointer;
+            border-radius: 8px;
+            margin: 0.1rem 0.4rem;
+            transition: 0.1s all;
+            gap: 8px;
+            position: relative;
+        }
+
+        .document_item:hover {
+            background-color: #2e2936d7;
+        }
+
+        .document_item i {
+            font-size: 16px;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.2em;
+            height: 1.2em;
+            line-height: 1;
+        }
+
+        .document_item .doc-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 13px;
+        }
+
+        .doc-menu-btn {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: 0.1s all;
+            line-height: 1;
+        }
+
+        .document_item:hover .doc-menu-btn {
+            opacity: 1;
+        }
+
+        .doc-menu-btn:hover {
+            background-color: #3d3647;
+            color: white;
+        }
+
+        .doc-menu-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background-color: #17141b;
+            border: solid 1px var(--border);
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px -6px #ffffff8c;
+            z-index: 100;
+            min-width: 130px;
+            overflow: hidden;
+        }
+
+        .doc-menu-dropdown.active {
+            display: block;
+        }
+
+        .doc-menu-option {
+            display: block;
+            width: 100%;
+            padding: 10px 14px;
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            text-align: left;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .doc-menu-option:hover {
+            background-color: #2e2936d7;
+        }
+
+        .doc-menu-option.doc-menu-delete {
+            color: #e74c3c;
+        }
+
+        #chat_view {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;
+        }
+
+        #chat_toolbar {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+            padding: 0.7rem 1rem;
+            border-bottom: solid 1px var(--border);
+        }
+
+        #chat_toolbar select {
+            background-color: #25212b;
+            border: solid 1px var(--border);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            flex: 1;
+            cursor: pointer;
+        }
+
+        #chat_toolbar select:focus {
+            border-color: var(--primary);
+        }
+
+        #chat_toolbar select option {
+            background-color: #17141b;
+            color: white;
+        }
+
+        #clear-chat-btn {
+            background: none;
+            border: solid 1px #555;
+            color: #ccc;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: inherit;
+            transition: 0.1s all;
+        }
+
+        #clear-chat-btn:hover {
+            border-color: #e74c3c;
+            color: #e74c3c;
+        }
+
+        #chat_list {
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            flex: 1;
+            overflow-y: auto;
+            gap: 8px;
+        }
+
+        .chat_message {
+            padding: 12px 16px;
+            line-height: 1.5;
+            font-size: 14px;
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+
+        .chat_message p {
+            margin: 0;
+        }
+
+        .chat_message p + p {
+            margin-top: 8px;
+        }
+
+        .chat_msg_ai {
+            background-color: #834f9b;
+            border-radius: 1rem 1rem 1rem 0;
+            align-self: flex-start;
+            color: white;
+        }
+
+        .chat_msg_user {
+            background-color: #332e3a;
+            border-radius: 1rem 1rem 0 1rem;
+            align-self: flex-end;
+            color: white;
+        }
+
+        .chat_msg_model {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 4px;
+        }
+
+        .chat_empty {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin: auto;
+            padding: 2rem;
+        }
+
+        #message_controls {
+            display: flex;
+            flex-direction: column;
+            background-color: #17111a;
+            border-top: solid 1px var(--border);
+        }
+
+        #message_box {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            border-radius: 30px;
+            padding: 5px 6px 5px 16px;
+            background-color: #25212b;
+            margin: 10px;
+            border: 0;
+            color: white;
+            font-family: 'Fira Sans', sans-serif;
+        }
+
+        #message_box:focus-within {
+            background-color: rgb(42, 37, 49);
+        }
+
+        #message_box input {
+            flex: 1;
+            padding: 10px 0;
+            font-size: 14px;
+            background-color: transparent;
+            border: 0;
+            color: white;
+            font-family: 'Fira Sans', sans-serif;
+            outline: none;
+        }
+
+        .message_control_btn {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+        }
+
+        #send_message_btn {
+            background-color: var(--primary);
+            border: solid 2px #c080dd;
+            font-size: 18px;
+        }
+
+        #send_message_btn:hover {
+            background-color: #c060e8;
+        }
+
+        #send_message_btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chat_thinking {
+            align-self: flex-start;
+            color: #999;
+            font-size: 13px;
+            padding: 12px 16px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div id="page_container">
+        <div id="main_toolbar">
+            <div id="left_toolbar">
+                <div id="logoarea" class="hide-in-mobile-search">
+                    <img src="{{ url_for('static', path='icons/favicon.png') }}">
+                    <a href="{{ url_for('home') }}">Silk <span class="primary_marker">Papers</span></a>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-left:8px;">
+                    <span style="color:#555; font-size:16px;">/</span>
+                    <span style="color:#ccc; font-size:15px;">{{ notebook_metadata.name }}</span>
+                </div>
+            </div>
+            <div id="right_toolbar" class="hide-in-mobile-search">
+            </div>
+        </div>
+        <main id="full_main">
+            <div id="split_view">
+                <div id="document_view">
+                    <div id="document_controls">
+                        <button id="upload-btn"><i class="fa-solid fa-upload"></i>Upload PDF</button>
+                        <input type="file" id="file-input" accept=".pdf" hidden>
+                    </div>
+                    <div id="document_list">
+                        {% for document in document_metdata %}
+                            <div class="document_item" data-id="{{ document.id }}">
+                                <i class="fa-regular fa-file"></i>
+                                <span class="doc-name">{{ document.display_name }}</span>
+                                <div class="doc-menu-container" style="position:relative;">
+                                    <button class="doc-menu-btn">⋮</button>
+                                    <div class="doc-menu-dropdown">
+                                        <button class="doc-menu-option" data-action="rename">Rename</button>
+                                        <button class="doc-menu-option doc-menu-delete" data-action="delete">Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div id="chat_view">
+                    <div id="chat_toolbar">
+                        <select id="model-select">
+                            <option value="">Loading models...</option>
+                        </select>
+                        <button id="clear-chat-btn"><i class="fa-regular fa-trash-can"></i> Clear</button>
+                    </div>
+                    <div id="chat_list">
+                        <div class="chat_empty">Loading messages...</div>
+                    </div>
+                    <div id="message_controls">
+                        <div id="message_box">
+                            <input type="text" id="message-input" placeholder="Ask a question about your documents...">
+                            <button class="message_control_btn" id="send_message_btn">🠅</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="rename-doc-modal" class="modal-overlay">
+        <div class="modal-dialog">
+            <h2>Rename Document</h2>
+            <div class="modal-body">
+                <label for="rename-doc-name">Name</label>
+                <input type="text" id="rename-doc-name" class="modal-input" />
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" id="rename-doc-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-save" id="rename-doc-save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="delete-doc-modal" class="modal-overlay">
+        <div class="modal-dialog">
+            <h2>Delete Document</h2>
+            <p class="modal-message">Are you sure you want to delete this document?</p>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" id="delete-doc-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-danger" id="delete-doc-confirm">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-overlay" class="loading-overlay">
+        <i class="fa fa-cog fa-spin"></i>
+    </div>
+
+    <div id="error-toast" class="error-toast"></div>
+
+    <script>
+        const NOTEBOOK_ID = "{{ notebook_id }}";
+
+        let renameDocId = null;
+        let deleteDocId = null;
+        let currentModel = "";
+
+        function setLoading(loading) {
+            document.getElementById('loading-overlay').classList.toggle('active', loading);
+        }
+
+        function showError(message) {
+            const toast = document.getElementById('error-toast');
+            toast.textContent = message;
+            toast.classList.add('active');
+            setTimeout(() => toast.classList.remove('active'), 5000);
+        }
+
+        function closeAllDocMenus() {
+            document.querySelectorAll('.doc-menu-dropdown.active').forEach(m => m.classList.remove('active'));
+        }
+
+        // --- Document Upload ---
+        document.getElementById('upload-btn').addEventListener('click', () => {
+            document.getElementById('file-input').click();
+        });
+
+        document.getElementById('file-input').addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.type !== 'application/pdf') {
+                showError('Only PDF files are supported');
+                return;
+            }
+
+            setLoading(true);
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('metadata', JSON.stringify({ notebook_id: NOTEBOOK_ID }));
+
+                const response = await fetch('/api/notebooks/upload', { method: 'POST', body: formData });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Upload failed');
+                }
+                await refreshDocuments();
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                setLoading(false);
+                event.target.value = '';
+            }
+        });
+
+        // --- Document Context Menu ---
+        document.getElementById('document_list').addEventListener('click', (event) => {
+            const menuBtn = event.target.closest('.doc-menu-btn');
+            if (menuBtn) {
+                event.stopPropagation();
+                const dropdown = menuBtn.parentElement.querySelector('.doc-menu-dropdown');
+                const wasActive = dropdown.classList.contains('active');
+                closeAllDocMenus();
+                if (!wasActive) dropdown.classList.add('active');
+                return;
+            }
+
+            const option = event.target.closest('.doc-menu-option');
+            if (option) {
+                event.stopPropagation();
+                closeAllDocMenus();
+                const item = option.closest('.document_item');
+                const docId = item.dataset.id;
+                const action = option.dataset.action;
+
+                if (action === 'rename') {
+                    const nameEl = item.querySelector('.doc-name');
+                    openRenameDocModal(docId, nameEl.textContent);
+                } else if (action === 'delete') {
+                    openDeleteDocModal(docId);
+                }
+                return;
+            }
+
+            closeAllDocMenus();
+        });
+
+        // Close menus on outside click
+        document.addEventListener('click', closeAllDocMenus);
+
+        // --- Rename Document Modal ---
+        function openRenameDocModal(id, currentName) {
+            renameDocId = id;
+            document.getElementById('rename-doc-name').value = currentName;
+            document.getElementById('rename-doc-modal').classList.add('active');
+            document.getElementById('rename-doc-name').focus();
+        }
+
+        function closeRenameDocModal() {
+            document.getElementById('rename-doc-modal').classList.remove('active');
+            renameDocId = null;
+        }
+
+        document.getElementById('rename-doc-save').addEventListener('click', async () => {
+            const newName = document.getElementById('rename-doc-name').value.trim();
+            if (!newName) return;
+
+            const id = renameDocId;
+            closeRenameDocModal();
+            setLoading(true);
+            try {
+                const response = await fetch('/api/notebooks/rename_document', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ document_id: id, new_name: newName })
+                });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Rename failed');
+                }
+                await refreshDocuments();
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        document.getElementById('rename-doc-cancel').addEventListener('click', closeRenameDocModal);
+        document.getElementById('rename-doc-modal').addEventListener('click', (event) => {
+            if (event.target === event.currentTarget) closeRenameDocModal();
+        });
+
+        document.getElementById('rename-doc-name').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') document.getElementById('rename-doc-save').click();
+        });
+
+        // --- Delete Document Modal ---
+        function openDeleteDocModal(id) {
+            deleteDocId = id;
+            document.getElementById('delete-doc-modal').classList.add('active');
+        }
+
+        function closeDeleteDocModal() {
+            document.getElementById('delete-doc-modal').classList.remove('active');
+            deleteDocId = null;
+        }
+
+        document.getElementById('delete-doc-confirm').addEventListener('click', async () => {
+            const id = deleteDocId;
+            closeDeleteDocModal();
+            setLoading(true);
+            try {
+                const response = await fetch('/api/notebooks/delete_document', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ document_id: id })
+                });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Delete failed');
+                }
+                await refreshDocuments();
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        document.getElementById('delete-doc-cancel').addEventListener('click', closeDeleteDocModal);
+        document.getElementById('delete-doc-modal').addEventListener('click', (event) => {
+            if (event.target === event.currentTarget) closeDeleteDocModal();
+        });
+
+        // --- Refresh Documents ---
+        async function refreshDocuments() {
+            try {
+                const response = await fetch('/api/notebooks/get_documents_list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notebook_id: NOTEBOOK_ID })
+                });
+                if (!response.ok) throw new Error('Failed to load documents');
+                const data = await response.json();
+                renderDocuments(data.result);
+            } catch (err) {
+                showError(err.message);
+            }
+        }
+
+        function renderDocuments(documents) {
+            const container = document.getElementById('document_list');
+            container.innerHTML = '';
+            for (const doc of documents) {
+                const div = document.createElement('div');
+                div.className = 'document_item';
+                div.dataset.id = doc.id;
+                div.innerHTML =
+                    '<i class="fa-regular fa-file"></i>' +
+                    '<span class="doc-name">' + escapeHtml(doc.display_name) + '</span>' +
+                    '<div class="doc-menu-container" style="position:relative;">' +
+                        '<button class="doc-menu-btn">⋮</button>' +
+                        '<div class="doc-menu-dropdown">' +
+                            '<button class="doc-menu-option" data-action="rename">Rename</button>' +
+                            '<button class="doc-menu-option doc-menu-delete" data-action="delete">Delete</button>' +
+                        '</div>' +
+                    '</div>';
+                container.appendChild(div);
+            }
+        }
+
+        function escapeHtml(text) {
+            const d = document.createElement('div');
+            d.textContent = text;
+            return d.innerHTML;
+        }
+
+        // --- Chat ---
+        function formatParameterSize(bytes) {
+            if (!bytes || bytes <= 0) return '';
+            if (bytes >= 1_000_000_000_000) return (bytes / 1_000_000_000_000).toFixed(1).replace(/\.0$/, '') + 'T';
+            if (bytes >= 1_000_000_000) return (bytes / 1_000_000_000).toFixed(1).replace(/\.0$/, '') + 'B';
+            if (bytes >= 1_000_000) return (bytes / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+            return bytes.toLocaleString();
+        }
+
+        function isSmallModel(bytes) {
+            return bytes && bytes < 7_000_000_000;
+        }
+
+        async function loadModels() {
+            try {
+                const response = await fetch('/api/llm/list');
+                if (!response.ok) throw new Error('Failed to load models');
+                const models = await response.json();
+                const select = document.getElementById('model-select');
+                select.innerHTML = '';
+                for (const m of models) {
+                    const opt = document.createElement('option');
+                    opt.value = m.model;
+                    const sizeLabel = m.parameter_size ? formatParameterSize(m.parameter_size) : '';
+                    const warning = isSmallModel(m.parameter_size) ? ' ⚠' : '';
+                    opt.textContent = m.model + (sizeLabel ? ' (' + sizeLabel + ')' : '') + warning;
+                    select.appendChild(opt);
+                }
+                if (models.length > 0) {
+                    currentModel = models[0].model;
+                    select.value = currentModel;
+                } else {
+                    select.innerHTML = '<option value="">No models available</option>';
+                }
+            } catch (err) {
+                const select = document.getElementById('model-select');
+                select.innerHTML = '<option value="">Error loading models</option>';
+                showError('Failed to load AI models: ' + err.message);
+            }
+        }
+
+        document.getElementById('model-select').addEventListener('change', (event) => {
+            currentModel = event.target.value;
+        });
+
+        async function loadChatMessages() {
+            try {
+                const response = await fetch('/api/notebooks/get_chat_messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notebook_id: NOTEBOOK_ID })
+                });
+                if (!response.ok) throw new Error('Failed to load messages');
+                const data = await response.json();
+                renderMessages(data.result);
+            } catch (err) {
+                showError(err.message);
+            }
+        }
+
+        function renderMessages(messages) {
+            const container = document.getElementById('chat_list');
+            container.innerHTML = '';
+            if (messages.length === 0) {
+                container.innerHTML = '<div class="chat_empty">No messages yet. Ask a question to get started.</div>';
+                return;
+            }
+            for (const msg of messages) {
+                const div = document.createElement('div');
+                div.className = 'chat_message ' + (msg.role === 'user' ? 'chat_msg_user' : 'chat_msg_ai');
+                if (msg.role === 'assistant' && msg.model_used) {
+                    const modelSpan = document.createElement('div');
+                    modelSpan.className = 'chat_msg_model';
+                    modelSpan.textContent = msg.model_used;
+                    div.appendChild(modelSpan);
+                }
+                const contentP = document.createElement('p');
+                contentP.textContent = msg.content;
+                div.appendChild(contentP);
+                container.appendChild(div);
+            }
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const prompt = input.value.trim();
+            if (!prompt) return;
+            if (!currentModel) {
+                showError('No AI model selected');
+                return;
+            }
+
+            input.value = '';
+            const sendBtn = document.getElementById('send_message_btn');
+            sendBtn.disabled = true;
+
+            // Add user message immediately
+            const container = document.getElementById('chat_list');
+            const emptyEl = container.querySelector('.chat_empty');
+            if (emptyEl) emptyEl.remove();
+
+            const userDiv = document.createElement('div');
+            userDiv.className = 'chat_message chat_msg_user';
+            userDiv.innerHTML = '<p>' + escapeHtml(prompt) + '</p>';
+            container.appendChild(userDiv);
+            container.scrollTop = container.scrollHeight;
+
+            // Add thinking indicator
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.className = 'chat_thinking';
+            thinkingDiv.textContent = 'Thinking...';
+            container.appendChild(thinkingDiv);
+            container.scrollTop = container.scrollHeight;
+
+            try {
+                const response = await fetch('/api/llm/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        notebook_id: NOTEBOOK_ID,
+                        model: currentModel,
+                        prompt: prompt
+                    })
+                });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Chat request failed');
+                }
+                const data = await response.json();
+
+                // Remove thinking indicator
+                thinkingDiv.remove();
+
+                const aiDiv = document.createElement('div');
+                aiDiv.className = 'chat_message chat_msg_ai';
+                const modelSpan = document.createElement('div');
+                modelSpan.className = 'chat_msg_model';
+                modelSpan.textContent = currentModel;
+                aiDiv.appendChild(modelSpan);
+                const contentP = document.createElement('p');
+                contentP.textContent = data.response;
+                aiDiv.appendChild(contentP);
+                container.appendChild(aiDiv);
+                container.scrollTop = container.scrollHeight;
+            } catch (err) {
+                thinkingDiv.remove();
+                showError(err.message);
+            } finally {
+                sendBtn.disabled = false;
+                input.focus();
+            }
+        }
+
+        document.getElementById('send_message_btn').addEventListener('click', sendMessage);
+        document.getElementById('message-input').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // --- Clear Chat ---
+        document.getElementById('clear-chat-btn').addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to clear all chat messages?')) return;
+
+            setLoading(true);
+            try {
+                const response = await fetch('/api/notebooks/clear_chat', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notebook_id: NOTEBOOK_ID })
+                });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Failed to clear chat');
+                }
+                const container = document.getElementById('chat_list');
+                container.innerHTML = '<div class="chat_empty">No messages yet. Ask a question to get started.</div>';
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // --- Init ---
+        loadModels();
+        loadChatMessages();
+    </script>
+</body>
+</html>

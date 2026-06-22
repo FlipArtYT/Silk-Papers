@@ -8,7 +8,13 @@ from contextlib import asynccontextmanager
 from services.db_models import Base
 from services.database import db_engine
 from services.notebook_mgr import notebook_id_exists, get_notebooks, get_notebook_doclen
+from services.db_models import Notebooks, Documents, ChatMessage
+from services.database import get_db, db_session
 from routers import notebooks, llm
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+)
+import sqlalchemy as sqla
 
 APP_VERSION = "0.0.0 ALPHA"
 
@@ -69,14 +75,40 @@ async def home(request: Request):
     )
 
 @app.get("/notebooks/{requested_notebook}", name="notebook_view", include_in_schema=False)
-async def notebook_view(request: Request, requested_notebook: str):
+async def notebook_view(request: Request, requested_notebook: str, db: AsyncSession = Depends(get_db)):
     notebook_exists = await notebook_id_exists(requested_notebook)
 
     if notebook_exists:
+        # Get notebook info
+        async with db_session() as session:
+            query = sqla.select(Notebooks).where(Notebooks.id == requested_notebook)
+            result = await session.execute(query)
+            notebook_metadata: Notebooks = result.scalars().one()
+
+        # Get documents
+        async with db_session() as session:
+            query = sqla.select(Documents).where(Documents.notebooks_id == requested_notebook)
+            result = await session.execute(query)
+            documents: list[Documents] = result.scalars().all()
+
+            documents_list = []
+
+            for document in documents:
+                documents_list.append({
+                    "id": document.id,
+                    "display_name": document.display_name,
+                    "filename": document.filename,
+                    "content_type": document.content_type,
+                })
+
         return templates.TemplateResponse(
             request,
             "notebook_view.html",
-            context={"notebook_id": requested_notebook}
+            context={
+                "notebook_id": requested_notebook,
+                "notebook_metadata": notebook_metadata,
+                "document_metdata": documents_list
+            }
         )
     
     else:

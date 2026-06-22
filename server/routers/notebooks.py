@@ -94,7 +94,42 @@ async def get_notebook_list(request_data: NotebookDocumentsRequest, db: AsyncSes
             })
         
         return {"result": response_format}
-    
+
+@router.post("/get_chat_messages")
+async def get_chat_messages_route(request_data: NotebookDocumentsRequest, db: AsyncSession = Depends(get_db)):
+    requested_notebook = request_data.notebook_id
+
+    try:
+        requested_notebook_exists = await notebook_id_exists(requested_notebook)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error when trying to search for the requested notebook: {str(e)}"
+        )
+
+    if not requested_notebook_exists:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Notebook was not found"
+        )
+
+    async with db_session() as session:
+        query = sqla.select(ChatMessage).where(ChatMessage.notebooks_id == requested_notebook).order_by(ChatMessage.id)
+        result = await session.execute(query)
+        messages: list[ChatMessage] = result.scalars().all()
+
+        response_format = []
+
+        for message in messages:
+            response_format.append({
+                "id": message.id,
+                "role": message.role,
+                "content": message.content,
+                "model_used": message.model_used,
+            })
+
+        return {"result": response_format}
+
 @router.post("/new", status_code=201)
 async def create_new_notebook(db: AsyncSession = Depends(get_db)):
     async with db_session() as session:
